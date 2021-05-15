@@ -1,0 +1,41 @@
+import yfinance as yf
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# no need to download any datasets everything is done through yahoo api. if you want to change the coins that is line 10
+# if  you want to change the weights that is line 8 and if you want to change the start date thats line 27
+
+weighting = {'BTC-USD': '50', 'XRP-USD': '50'}
+
+members = ['BTC-USD', 'XRP-USD']
+
+def PortfolioCalc(weightings,data,name):
+    data[name] = sum([ int(weightings[x])*data[x]/100 for x in list(weightings.keys()) ])
+    return data
+
+basedata = yf.Ticker(members[0]).history(period='max').reset_index()[['Date','Open']]
+basedata['Date'] = pd.to_datetime(basedata['Date'])
+basedata = basedata.rename(columns= {'Open':members[0]})
+
+if (len(members) > 1):
+    for x in range(1,len(members)):
+        newdata = yf.Ticker(members[x]).history(period='max').reset_index()[['Date', 'Open']]
+        newdata['Date'] = pd.to_datetime(newdata['Date'])
+        newdata = newdata.rename(columns={'Open': members[x]})
+        basedata = pd.merge(basedata,newdata,on='Date')
+
+basedata = basedata[ basedata['Date'] > '2018-04-21']
+for x in members:
+    basedata[x] = basedata[x]/(basedata[x].iloc[0])
+
+basedata = PortfolioCalc(weighting,basedata,'XRP-vs-BTC')
+plt.style.use('dark_background')
+plt.plot(basedata['Date'], basedata['XRP-vs-BTC'], label='50% XRP 50% BTC', color='dodgerblue')
+plt.plot(basedata['Date'], basedata['XRP-USD'], label='XRP', color='darkred')
+plt.plot(basedata['Date'], basedata['BTC-USD'], label='BTC',color='orange')
+
+
+plt.legend(loc='upper left')
+plt.title(label='XRP vs BTC',fontfamily='Comic Sans MS')
+plt.show()
+
